@@ -13,6 +13,7 @@ const UserController = require('../controller/user.controller');
 router.post('/login', UserController.login);
 router.post('/register', UserController.register);
 router.post('/invite', UserController.invite);
+router.get('/dashboard', UserController.dashboard);
 // router.post('/forget-password', UserController.forgetPassword);
 // router.post('/code-verfication', UserController.codeVerification);
 // router.post('/reset-password', UserController.resetPassword);

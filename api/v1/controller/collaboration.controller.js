@@ -49,6 +49,7 @@ controller.getAllAssignedCollaborationsWithStatus = async (req, res) => {
 
     console.log(req.query)
     let collaborationsArr = [];
+    let collaborationsReasonArr = [];
     /* NOTE: This will give response without pagination for now*/
     const userToCollaborationMapRes = await UserToCollaborationMapModel.findAll({
         where: {
@@ -59,6 +60,7 @@ controller.getAllAssignedCollaborationsWithStatus = async (req, res) => {
 
     for (let i = 0; i < userToCollaborationMapRes.length; i++) {
         collaborationsArr.push(userToCollaborationMapRes[i].collaboration_id);
+        collaborationsReasonArr.push(userToCollaborationMapRes[i].reason);
     }
 
     if (!collaborationsArr.length > 0) collaborationsArr.push(0);
@@ -72,6 +74,10 @@ controller.getAllAssignedCollaborationsWithStatus = async (req, res) => {
         }
     });
 
+    for (let i = 0; i < collaborationRes.length; i++) {
+        collaborationRes[i].dataValues.reason = collaborationsReasonArr[i];
+    }
+
     let success_200 = SuccessResponse.success_200;
     success_200.message = "List of all pending collaborations!";
     success_200.data.items = collaborationRes;
@@ -82,19 +88,88 @@ controller.acceptOrRejectCollaboration = async (req, res) => {
     const user_id = req.body.user_id;
     const collaboration_id = req.body.collaboration_id;
     const status = req.body.status;
+    const reason = req.body.reason;
 
     await UserToCollaborationMapModel.update({
-        status: status
+        status: status,
+        reason: reason
     }, {
         where: {
             user_id: user_id,
-            collaboration_id: collaboration_id
+            collaboration_id: collaboration_id,
+        }
+    });
+
+    const collaborationRes = await CollaborationModel.findAll({
+        where: {
+            id: collaboration_id,
+        }
+    });
+
+    let progress;
+    if (status == 1) {
+        console.log('status is accept');
+        progress = (collaborationRes[0].total_accepted_invites / collaborationRes[0].total_invites) * 100;
+        await CollaborationModel.increment({
+            total_accepted_invites: 1
+        }, {
+            where: {
+                id: collaboration_id,
+            }
+        });
+
+    } else if (status == -1) {
+        console.log('status is rejected')
+        await CollaborationModel.increment({
+            total_rejected_invites: 1
+        }, {
+            where: {
+                id: collaboration_id,
+            }
+        });
+    }
+
+    await CollaborationModel.increment({
+        progress: progress
+    }, {
+        where: {
+            id: collaboration_id,
         }
     });
 
     let success_200 = SuccessResponse.success_200;
     success_200.message = "Updated Status Successfully!";
     success_200.data.items = [];
+    res.send(success_200);
+}
+
+controller.getMembersAgainstCollaboration = async (req, res) => {
+    const { collaboration_id } = req.query;
+
+    let usersArr = [];
+
+    const userToCollaborationRes = await UserToCollaborationMapModel.findAll({
+        where: {
+            collaboration_id: collaboration_id,
+            user_id: {
+                [Op.ne]: null
+            }
+        }
+    });
+
+    for (let i = 0; i < userToCollaborationRes.length; i++) {
+        let user_id = userToCollaborationRes[i].user_id;
+        const userRes = await UserModel.findAll({
+            where: {
+                id: user_id
+            }
+        });
+        if (userRes.length > 0 && userRes[i] != null) usersArr.push(userRes[i]);
+    }
+
+    let success_200 = SuccessResponse.success_200;
+    success_200.message = "All users against collaboration!";
+    success_200.data.items = usersArr;
     res.send(success_200);
 }
 

@@ -31,6 +31,21 @@ const Collaboration = Db.define('Collaboration', {
         allowNull: true,
         defaultValue: 0
     },
+    total_invites: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
+    total_accepted_invites: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
+    total_rejected_invites: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
 }, {
     freezeTableName: true
 });

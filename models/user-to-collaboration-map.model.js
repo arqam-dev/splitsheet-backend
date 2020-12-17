@@ -18,6 +18,10 @@ const UserToCollaborationMap = Db.define('UserToCollaborationMap', {
         defaultValue: 0
         // accepted = 1, rejected = -1, pending = 0, 
     },
+    reason: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     email: {
         type: DataTypes.STRING,
         allowNull: false,

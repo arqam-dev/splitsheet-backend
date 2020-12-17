@@ -8,6 +8,7 @@ const bcrypt = require("bcrypt");
 
 // import model
 const UserModel = require("../../../models/user.model");
+const CollaborationModel = require("../../../models/collaboration.model");
 const UserToCollaborationMapModel = require("../../../models/user-to-collaboration-map.model");
 
 const _ = require("lodash");
@@ -44,7 +45,7 @@ const emailSendingFunc = async (req, res) => {
     to: email,
     subject: "Invitation",
     html: `<p>You have been invited by <b> ${invited_by_name} </b> to join the <b> ${collaboration_name} </b> project. <br> 
-    Login with <a href="http://localhost:4200/#/register"> Split Screen </a> to accept the invitation.</p>`, // html body
+    Login with <a href="https://split-sheet.herokuapp.com/#/register"> Split Screen </a> to accept the invitation.</p>`, // html body
   };
 
   transporter.sendMail(mailOptions, function (error, info) {
@@ -184,6 +185,14 @@ controller.invite = async (req, res) => {
     collaboration_id: collaboration_id,
     status: status,
     email: email
+  });
+
+  await CollaborationModel.increment({
+    total_invites: 1
+  }, {
+    where: {
+      id: collaboration_id,
+    }
   });
 
   let success_200 = SuccessResponse.success_200;
@@ -381,5 +390,57 @@ controller.updateProfile = async (req, res) => {
   res.send(success_200);
 
 };
+
+controller.dashboard = async (req, res) => {
+  console.log('dashboard called!');
+
+  const user_id = req.query.user_id;
+  let collaboration_id = req.query.collaboration_id;
+
+  let finalRes = [];
+
+  let totalCollaborationRes = 0;
+  let acceptedCollaborationRes = 0;
+  let rejectedCollaborationRes = 0;
+
+  totalCollaborationRes = await CollaborationModel.findAll({
+    where: {
+      user_id: user_id
+    }
+  });
+
+  let acceptedCollaborationsArr = [];
+  for (let i = 0; i < totalCollaborationRes.length; i++) {
+    acceptedCollaborationRes = await UserToCollaborationMapModel.findAll({
+      where: {
+        collaboration_id: totalCollaborationRes[i].id,
+        status: 1
+      }
+    });
+    if (acceptedCollaborationRes.length > 0) acceptedCollaborationsArr.push(acceptedCollaborationRes[0]);
+  }
+
+  let rejectedCollaborationsArr = [];
+  for (let i = 0; i < totalCollaborationRes.length; i++) {
+    rejectedCollaborationRes = await UserToCollaborationMapModel.findAll({
+      where: {
+        collaboration_id: totalCollaborationRes[i].id,
+        status: -1
+      }
+    });
+    if (rejectedCollaborationsArr.length > 0) rejectedCollaborationsArr.push(rejectedCollaborationRes[0]);
+  }
+
+  let totalCollaborations = totalCollaborationRes.length;
+
+  let success_200 = SuccessResponse.success_200;
+  success_200.message = "Dashboard Items!";
+  success_200.data.items = [{
+    totalCollaborations: totalCollaborations,
+    acceptedCollaborations: acceptedCollaborationsArr.length,
+    rejectedCollaborations: rejectedCollaborationsArr.length
+  }];
+  res.send(success_200);
+}
 
 module.exports = controller;
