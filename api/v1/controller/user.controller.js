@@ -325,7 +325,7 @@ controller.invite = async (req, res) => {
     }
   });
 
-  console.log("UserRes" , userRes.length);
+  console.log("UserRes", userRes.length);
   if (userRes.length > 0) {
     user_id = userRes[0].id;
   } else {
@@ -466,12 +466,12 @@ controller.dashboard = async (req, res) => {
 
   totalProjectRes = projectRes.length;
 
-  for(let i = 0; i < totalProjectRes; i++){
+  for (let i = 0; i < totalProjectRes; i++) {
     total_invites += projectRes[i].total_invites;
     total_accepted_invites += projectRes[i].total_accepted_invites;
     total_rejected_invites += projectRes[i].total_rejected_invites;
   }
-  
+
   let padding_invites = total_invites - (total_accepted_invites + total_rejected_invites);
 
   finalRes = {
@@ -519,6 +519,46 @@ controller.dashboard = async (req, res) => {
   // }];
   // success_200.data.items = totalCollaborationRes;
   // res.send(success_200);
+}
+
+controller.getProfile = async (req, res) => {
+
+  const { user_id } = req.query;
+
+  const userRes = await UserModel.findAll({
+    where: {
+      id: user_id
+    }
+  });
+
+  let success_200 = SuccessResponse.success_200;
+  success_200.message = "Profile Info!";
+  success_200.data.items = userRes;
+  res.send(success_200);
+}
+
+controller.updateProfile = async (req, res) => {
+
+  let { user_id, password } = req.body;
+  password = await passwordHash(password);
+
+  await UserModel.update(
+    { password: password }, {
+    where: {
+      id: user_id
+    }
+  });
+
+  const userRes = await UserModel.findAll({
+    where: {
+      id: user_id
+    }
+  });
+
+  let success_200 = SuccessResponse.success_200;
+  success_200.message = "Profile Info Updated!";
+  success_200.data.items = userRes;
+  res.send(success_200);
 }
 
 module.exports = controller;

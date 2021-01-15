@@ -19,6 +19,15 @@ const Project = Db.define('Project', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    description: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    value: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+    },
     started_at: {
         type: DataTypes.DATE,
         allowNull: false,
