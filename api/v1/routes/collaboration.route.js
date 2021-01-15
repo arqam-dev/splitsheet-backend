@@ -12,5 +12,6 @@ router.get('/', CollaborationController.getAllCollaborations);
 router.post('/', CollaborationController.createCollaboration);
 router.get('/assigned-collaborations', CollaborationController.getAllAssignedCollaborationsWithStatus);
 router.post('/accept-reject-collaboration', CollaborationController.acceptOrRejectCollaboration);
+router.get('/users-against-collaboration', CollaborationController.getMembersAgainstCollaboration);
 
 module.exports = router;

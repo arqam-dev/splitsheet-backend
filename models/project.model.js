@@ -3,11 +3,12 @@ const {
     DataTypes
 } = require("sequelize");
 
+const Team = require('./team.modal');
+
 // import models
-const CollaborationToUserMap = require('./user-to-collaboration-map.model');
 
 // db schema
-const Collaboration = Db.define('Collaboration', {
+const Project = Db.define('Project', {
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
@@ -51,8 +52,8 @@ const Collaboration = Db.define('Collaboration', {
 });
 
 // Relations
-Collaboration.hasMany(CollaborationToUserMap, {
-    foreignKey: 'collaboration_id'
+Project.hasMany(Team, {
+    foreignKey: 'project_id'
 });
 
-module.exports = Collaboration;
+module.exports = Project;

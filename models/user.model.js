@@ -4,8 +4,9 @@ const {
 } = require("sequelize");
 
 // import models for the relations
-const Collaboration = require('./collaboration.model');
-const CollaborationToUserMap = require('./user-to-collaboration-map.model');
+const UserToTeamMap = require('./user-to-team-map');
+const Team = require('./team.modal');
+const Project = require('./project.model');
 
 // db schema
 const User = Db.define('User', {
@@ -75,10 +76,22 @@ const User = Db.define('User', {
 });
 
 // Relations
-User.hasMany(Collaboration, {
+// User.hasMany(Collaboration, {
+//     foreignKey: 'user_id'
+// });
+// User.hasMany(CollaborationToUserMap, {
+//     foreignKey: 'user_id'
+// });
+
+User.hasMany(UserToTeamMap,{
     foreignKey: 'user_id'
 });
-User.hasMany(CollaborationToUserMap, {
+
+// User.hasMany(Team, {
+//     foreignKey: 'user_id'
+// });
+
+User.hasMany(Project, {
     foreignKey: 'user_id'
 });
 

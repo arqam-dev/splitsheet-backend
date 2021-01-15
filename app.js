@@ -12,7 +12,8 @@ var cors = require('cors');
 
 // import routes
 var userRouter = require('./api/v1/routes/user.route');
-var collaborationRouter = require('./api/v1/routes/collaboration.route');
+var projectRouter = require('./api/v1/routes/project.route');
+var teamRouter = require('./api/v1/routes/team.route');
 
 // import db connection
 const Db = require('./server/boot/db.connection');
@@ -40,7 +41,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // use routes
 app.use('/v1/users', userRouter);
-app.use('/v1/collaborations', collaborationRouter);
+app.use('/v1/projects', projectRouter);
+app.use('/v1/team', teamRouter);
 
 require('expressjs-api-explorer')(app, express);
 
@@ -53,7 +55,7 @@ app.listen(3000, () => {
 
 // db migration
 Db.sync({
-  // // //  force: true,  // -- Note: Warning! This will re-create the complete database and data will be lost.
+  //  force: true,  // -- Note: Warning! This will re-create the complete database and data will be lost.
   alter: true, // -- Use when you want to update table schema without loosing the data.
 }, (req, res) => {
   ConsoleLog('db sync perform');

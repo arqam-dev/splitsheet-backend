@@ -8,7 +8,7 @@ const bcrypt = require("bcrypt");
 
 // import model
 const UserModel = require("../../../models/user.model");
-const UserToCollaborationMapModel = require("../../../models/user-to-collaboration-map.model");
+const ProjectModel = require("../../../models/project.model");
 
 const _ = require("lodash");
 
@@ -21,6 +21,7 @@ const ConsoleLog = require("../../../public/javascripts/console.log");
 
 // import node mailer
 var nodemailer = require("nodemailer");
+const UserToTeamMap = require("../../../models/user-to-team-map");
 
 // create class object
 const controller = {};
@@ -37,6 +38,10 @@ const emailSendingFunc = async (req, res) => {
       user: "renthub715@gmail.com",
       pass: "Pakistan1234#",
     },
+    // auth: {
+    //   user: "muhammad.arqam@rsglowtech.com",
+    //   pass: "ARMsoldier547",
+    // },
   });
 
   var mailOptions = {
@@ -44,7 +49,7 @@ const emailSendingFunc = async (req, res) => {
     to: email,
     subject: "Invitation",
     html: `<p>You have been invited by <b> ${invited_by_name} </b> to join the <b> ${collaboration_name} </b> project. <br> 
-    Login with <a href="http://localhost:4200/#/register"> Split Screen </a> to accept the invitation.</p>`, // html body
+    Login with <a href="https://split-sheet.herokuapp.com/#/register"> Split Screen </a> to accept the invitation.</p>`, // html body
   };
 
   transporter.sendMail(mailOptions, function (error, info) {
@@ -69,6 +74,44 @@ const isPasswordMatched = async (password, password_hashed) => {
 };
 
 // APIs
+// controller.login = async (req, res) => {
+//   ConsoleLog("login Called");
+//   console.log(req.body);
+
+//   let failure_400 = FailureResponse.failure_400;
+//   const email = req.body.email;
+//   const password = req.body.password;
+//   const userRes = await UserModel.findAll({
+//     where: {
+//       email: email,
+//     },
+//   });
+
+//   console.log(userRes.length)
+
+//   // Exception handling
+//   if (!(userRes.length > 0)) {
+//     console.log('invalid email...!');
+//     failure_400.message = "Email or password invalid";
+//     failure_400.data.items = [];
+//     res.send(failure_400);
+//     return;
+//   }
+
+//   let isValid = await isPasswordMatched(password, userRes[0].password);
+//   if (!isValid) {
+//     ConsoleLog('invalid password...!');
+//     failure_400.message = "Email or password invalid";
+//     failure_400.data.items = [];
+//     res.send(failure_400);
+//   }
+
+//   let success_200 = SuccessResponse.success_200;
+//   success_200.message = "Login successfully..!";
+//   success_200.data.items = userRes;
+//   res.send(success_200);
+// };
+
 controller.login = async (req, res) => {
   ConsoleLog("login Called");
   console.log(req.body);
@@ -81,8 +124,6 @@ controller.login = async (req, res) => {
       email: email,
     },
   });
-
-  console.log(userRes.length)
 
   // Exception handling
   if (!(userRes.length > 0)) {
@@ -105,9 +146,68 @@ controller.login = async (req, res) => {
   success_200.message = "Login successfully..!";
   success_200.data.items = userRes;
   res.send(success_200);
-};
+}
+
+// controller.register = async (req, res) => {
+//   ConsoleLog('Registration called...!');
+//   let failure_400 = FailureResponse.failure_400;
+
+//   // exception handling
+//   if (_.isEmpty(req.body)) {
+//     console.log("Empty called");
+//     failure_400.message = "Object cannot be empty";
+//     failure_400.data.items = [];
+//     res.send(failure_400);
+//     return;
+//   } else {
+//     const email = req.body.email;
+//     const emailRes = await UserModel.findAll({
+//       where: {
+//         email: email,
+//       },
+//     });
+
+//     if (emailRes.length > 0) {
+//       failure_400.message = "Email already exist!";
+//       failure_400.data.items = [];
+//       res.send(failure_400);
+//       return;
+//     }
+
+//     const user_name = req.body.user_name;
+//     const userNameRes = await UserModel.findAll({
+//       where: {
+//         user_name: user_name,
+//       },
+//     });
+
+//     if (userNameRes.length > 0) {
+//       failure_400.message = "User name already exist!";
+//       failure_400.data.items = [];
+//       res.send(failure_400);
+//       return;
+//     }
+//   }
+
+//   req.body.password = await passwordHash(req.body.password);
+//   const userRes = await UserModel.create(req.body);
+
+//   await UserToCollaborationMapModel.update({
+//     user_id: userRes.id
+//   }, {
+//     where: {
+//       email: userRes.email
+//     }
+//   });
+
+//   let success_200 = SuccessResponse.success_200;
+//   success_200.message = "Register successfully..!";
+//   success_200.data.items = [userRes];
+//   res.send(success_200);
+// };
 
 controller.register = async (req, res) => {
+
   ConsoleLog('Registration called...!');
   let failure_400 = FailureResponse.failure_400;
 
@@ -151,7 +251,7 @@ controller.register = async (req, res) => {
   req.body.password = await passwordHash(req.body.password);
   const userRes = await UserModel.create(req.body);
 
-  await UserToCollaborationMapModel.update({
+  await UserToTeamMap.update({
     user_id: userRes.id
   }, {
     where: {
@@ -163,27 +263,88 @@ controller.register = async (req, res) => {
   success_200.message = "Register successfully..!";
   success_200.data.items = [userRes];
   res.send(success_200);
-};
+}
+
+// controller.invite = async (req, res) => {
+//   ConsoleLog('invitation called!');
+//   const email = req.body.email;
+//   const user_name = req.body.user_name;
+//   const collaboration_id = req.body.collaboration_id;
+//   const collaboration_name = req.body.collaboration_name;
+//   const status = 0;
+
+//   await emailSendingFunc({
+//     invited_by_name: user_name, // who invited
+//     email: email, // to whom we invited
+//     collaboration_name: collaboration_name
+//   });
+
+//   await UserToCollaborationMapModel.create({
+//     user_id: null,
+//     collaboration_id: collaboration_id,
+//     status: status,
+//     email: email
+//   });
+
+//   await CollaborationModel.increment({
+//     total_invites: 1
+//   }, {
+//     where: {
+//       id: collaboration_id,
+//     }
+//   });
+
+//   let success_200 = SuccessResponse.success_200;
+//   success_200.message = "Invitation has been send successfully!";
+//   success_200.data.items = [];
+//   res.send(success_200);
+// }
 
 controller.invite = async (req, res) => {
   ConsoleLog('invitation called!');
   const email = req.body.email;
   const user_name = req.body.user_name;
-  const collaboration_id = req.body.collaboration_id;
-  const collaboration_name = req.body.collaboration_name;
-  const status = 0;
+  const team_id = req.body.team_id;
+  const project_name = req.body.project_name;
+  const project_id = req.body.project_id;
+  const percentage = req.body.percentage;
+  // const status = 0;
+  var user_id;
 
   await emailSendingFunc({
     invited_by_name: user_name, // who invited
     email: email, // to whom we invited
-    collaboration_name: collaboration_name
+    collaboration_name: project_name
   });
 
-  await UserToCollaborationMapModel.create({
-    user_id: null,
-    collaboration_id: collaboration_id,
-    status: status,
-    email: email
+  // Exception here if the user already register
+
+  const userRes = await UserModel.findAll({
+    where: {
+      email: email
+    }
+  });
+
+  console.log("UserRes" , userRes.length);
+  if (userRes.length > 0) {
+    user_id = userRes[0].id;
+  } else {
+    user_id = null;
+  }
+
+  await UserToTeamMap.create({
+    user_id: user_id,
+    team_id: team_id,
+    email: email,
+    percentage: percentage
+  });
+
+  await ProjectModel.increment({
+    total_invites: 1
+  }, {
+    where: {
+      id: project_id,
+    }
   });
 
   let success_200 = SuccessResponse.success_200;
@@ -192,194 +353,172 @@ controller.invite = async (req, res) => {
   res.send(success_200);
 }
 
-controller.forgetPassword = async (req, res) => {
-  console.log("forgetPassword called...!");
-  let failure_400 = FailureResponse.failure_400;
 
-  const email = req.body.email;
-  const userRes = await UserModel.findAll({
+// controller.updateProfile = async (req, res) => {
+//   let failure_400 = FailureResponse.failure_400
+//   console.log("Profile Update called!");
+//   if (_.isEmpty(req.body)) {
+//     console.log("Body Empty!");
+//     failure_400.message = "Object cannot be empty!";
+//     failure_400.data.items = [];
+//     res.send(failure_400);
+//     return;
+//   }
+
+//   if (!(_.isEmpty(req.body.password))) {
+//     let encryptPassword = await passwordHash(req.body.password);
+//     req.body.password = encryptPassword;
+//   }
+
+//   let obj = req.body;
+//   let updateRes = await UserModel.update(
+//     obj
+//     , {
+//       where: {
+//         email: obj.email
+//       }
+//     });
+
+//   if (updateRes[0] === 0) {
+//     failure_400.message = "Your profile does not update!";
+//     failure_400.data.items = [];
+//     res.send(failure_400);
+//     return;
+//   }
+
+//   let success_200 = SuccessResponse.success_200;
+//   success_200.message = "Your profile has been successfully updated!";
+//   success_200.data.items = obj;
+//   res.send(success_200);
+
+// };
+
+// controller.dashboard = async (req, res) => {
+//   console.log('dashboard called!');
+
+//   const user_id = req.query.user_id;
+//   let collaboration_id = req.query.collaboration_id;
+
+//   let finalRes = [];
+
+//   let totalCollaborationRes = 0;
+//   let acceptedCollaborationRes = 0;
+//   let rejectedCollaborationRes = 0;
+
+//   totalCollaborationRes = await CollaborationModel.findAll({
+//     where: {
+//       user_id: user_id
+//     }
+//   });
+
+//   let acceptedCollaborationsArr = [];
+//   for (let i = 0; i < totalCollaborationRes.length; i++) {
+//     acceptedCollaborationRes = await UserToCollaborationMapModel.findAll({
+//       where: {
+//         collaboration_id: totalCollaborationRes[i].id,
+//         status: 1
+//       }
+//     });
+//     if (acceptedCollaborationRes.length > 0) acceptedCollaborationsArr.push(acceptedCollaborationRes[0]);
+//   }
+
+//   let rejectedCollaborationsArr = [];
+//   for (let i = 0; i < totalCollaborationRes.length; i++) {
+//     rejectedCollaborationRes = await UserToCollaborationMapModel.findAll({
+//       where: {
+//         collaboration_id: totalCollaborationRes[i].id,
+//         status: -1
+//       }
+//     });
+//     if (rejectedCollaborationsArr.length > 0) rejectedCollaborationsArr.push(rejectedCollaborationRes[0]);
+//   }
+
+//   let totalCollaborations = totalCollaborationRes.length;
+
+//   let success_200 = SuccessResponse.success_200;
+//   success_200.message = "Dashboard Items!";
+//   success_200.data.items = [{
+//     totalCollaborations: totalCollaborations,
+//     acceptedCollaborations: acceptedCollaborationsArr.length,
+//     rejectedCollaborations: rejectedCollaborationsArr.length
+//   }];
+//   res.send(success_200);
+// }
+
+controller.dashboard = async (req, res) => {
+  console.log('dashboard called!');
+
+  const user_id = req.query.user_id;
+  // let project_id = req.query.project_id;
+
+  let finalRes = [];
+
+  let totalProjectRes = 0;
+  let total_invites = 0;
+  let total_accepted_invites = 0;
+  let total_rejected_invites = 0;
+
+  let projectRes = await ProjectModel.findAll({
     where: {
-      email: email,
-    },
+      user_id: user_id
+    }
   });
 
-  if (userRes.length > 0) {
-    let code = Math.floor(Math.random() * (9999 - 1000) + 1000);
-    const updatedRes = await UserModel.update(
-      {
-        forget_code: code,
-      },
-      {
-        where: {
-          email: email,
-        },
-      }
-    );
-    const emailSendingObj = {
-      email: email,
-      code: code,
-    };
+  totalProjectRes = projectRes.length;
 
-    console.log("Code: " + code);
-    if (updatedRes[0] === 1) {
-      const emailRes = await emailSendingFunc(emailSendingObj);
-      if (!emailRes) {
-        failure_400.message = "Email does not sent";
-        failure_400.data.items = [];
-        res.send(failure_400);
-      }
-    }
-  } else {
-    failure_400.message = "Email does not exist";
-    failure_400.data.items = [];
-    res.send(failure_400);
+  for(let i = 0; i < totalProjectRes; i++){
+    total_invites += projectRes[i].total_invites;
+    total_accepted_invites += projectRes[i].total_accepted_invites;
+    total_rejected_invites += projectRes[i].total_rejected_invites;
   }
+  
+  let padding_invites = total_invites - (total_accepted_invites + total_rejected_invites);
+
+  finalRes = {
+    total_projects: totalProjectRes,
+    total_invites: total_invites,
+    total_accepted_invites: total_accepted_invites,
+    total_rejected_invites: total_rejected_invites,
+    padding_invites: padding_invites
+  };
 
   let success_200 = SuccessResponse.success_200;
-  success_200.message =
-    "Code has been sent to your registeres email successfully!";
-  success_200.data.items = [];
-  success_200.data.isExist = true;
-  res.send(success_200);
-};
-
-controller.codeVerification = async (req, res) => {
-  console.log("update password called");
-  let failure_400 = FailureResponse.failure_400;
-
-  const email = req.body.email;
-  const code = req.body.forget_code;
-
-  const userRes = await UserModel.findAll({
-    where: {
-      email: email,
-      forget_code: code,
-    },
-  });
-
-  if (!(userRes.length > 0)) {
-    failure_400.message = "Code does not match!";
-    failure_400.data.items = [];
-    res.send(failure_400);
-  }
-
-  let success_200 = SuccessResponse.success_200;
-  success_200.message = "Code matched!";
-  success_200.data.items = [];
-  success_200.data.isMatched = true;
-  res.send(success_200);
-};
-
-controller.resetPassword = async (req, res) => {
-  ConsoleLog("reset password called");
-  let failure_400 = FailureResponse.failure_400;
-
-  let isLoggedIn = req.body.isLoggedIn;
-  isLoggedIn = isLoggedIn.toLowerCase();
-  const email = req.body.email;
-  const newPassword = await passwordHash(req.body.newPassword);
-
-  if (isLoggedIn === "true") {
-    const oldPassword = req.body.oldPassword;
-    const userRes = await UserModel.findAll({
-      where: {
-        email: email,
-      },
-    });
-
-    if (!(userRes.length > 0)) {
-      failure_400.message = "Email invalid!";
-      failure_400.data.items = [];
-      res.send(failure_400);
-    } else {
-      let isValid = await isPasswordMatched(oldPassword, userRes[0].password);
-      if (isValid) {
-        const updatedRes = await UserModel.update(
-          {
-            password: newPassword,
-            forget_code: null,
-          },
-          {
-            where: {
-              email: email,
-            },
-          }
-        );
-
-        if (updatedRes[0] === 0) {
-          failure_400.message = "Your password not updated!";
-          failure_400.data.items = [];
-          res.send(failure_400);
-        }
-      } else {
-        failure_400.message = "Your old password does not matched!";
-        failure_400.data.items = [];
-        res.send(failure_400);
-      }
-    }
-  } else {
-    const updatedRes = await UserModel.update(
-      {
-        password: newPassword,
-        forget_code: null,
-      },
-      {
-        where: {
-          email: email,
-        },
-      }
-    );
-    if (updatedRes[0] === 0) {
-      failure_400.message = "Your password does not update!";
-      failure_400.data.items = [];
-      res.send(failure_400);
-    }
-  }
-
-  let success_200 = SuccessResponse.success_200;
-  success_200.message = "Your password has been updated successfully!";
-  success_200.data.items = [];
-  success_200.isPasswordReset = true;
-  res.send(success_200);
-};
-
-controller.updateProfile = async (req, res) => {
-  let failure_400 = FailureResponse.failure_400
-  console.log("Profile Update called!");
-  if (_.isEmpty(req.body)) {
-    console.log("Body Empty!");
-    failure_400.message = "Object cannot be empty!";
-    failure_400.data.items = [];
-    res.send(failure_400);
-    return;
-  }
-
-  if (!(_.isEmpty(req.body.password))) {
-    let encryptPassword = await passwordHash(req.body.password);
-    req.body.password = encryptPassword;
-  }
-
-  let obj = req.body;
-  let updateRes = await UserModel.update(
-    obj
-    , {
-      where: {
-        email: obj.email
-      }
-    });
-
-  if (updateRes[0] === 0) {
-    failure_400.message = "Your profile does not update!";
-    failure_400.data.items = [];
-    res.send(failure_400);
-    return;
-  }
-
-  let success_200 = SuccessResponse.success_200;
-  success_200.message = "Your profile has been successfully updated!";
-  success_200.data.items = obj;
+  success_200.message = "Dashboard Items!";
+  success_200.data.items = [finalRes];
   res.send(success_200);
 
-};
+  // for (let i = 0; i < totalProjectRes.length; i++) {
+  //   acceptedProjectRes = await UserToTeamMap.findAll({
+  //     where: {
+  //       team_id: totalProjectRes[i].id,
+  //       status: 1
+  //     }
+  //   });
+  //   if (acceptedProjectRes.length > 0) acceptedProjectArr.push(acceptedProjectRes[0]);
+  // }
+
+  let rejectedProjectArr = [];
+  // for (let i = 0; i < totalProjectRes.length; i++) {
+  //   rejectedProjectRes = await UserToTeamMap.findAll({
+  //     where: {
+  //       team_id: totalProjectRes[i].id,
+  //       status: -1
+  //     }
+  //   });
+  //   if (rejectedProjectArr.length > 0) rejectedProjectArr.push(rejectedProjectRes[0]);
+  // }
+
+  // let totalCollaborations = totalCollaborationRes.length;
+
+  // let success_200 = SuccessResponse.success_200;
+  // success_200.message = "Dashboard Items!";
+  // success_200.data.items = [{
+  //   totalCollaborations: totalCollaborations,
+  //   acceptedCollaborations: acceptedCollaborationsArr.length,
+  //   rejectedCollaborations: rejectedCollaborationsArr.length
+  // }];
+  // success_200.data.items = totalCollaborationRes;
+  // res.send(success_200);
+}
 
 module.exports = controller;
